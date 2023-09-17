@@ -6,7 +6,7 @@ from utils import checkattr
 ## Function for defining auto-encoder model
 def define_autoencoder(args, config, device, generator=False, convE=None):
     # -import required model
-    from models.vae import AutoEncoder
+    from models.vae import AutoEncoder 
     # -create model
     if (hasattr(args, "depth") and args.depth > 0):
         model = AutoEncoder(

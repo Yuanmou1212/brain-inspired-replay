@@ -87,7 +87,7 @@ class MLP(nn.Module):
             pre_act_list = []
         # Sequentially pass [x] through all fc-layers
         for lay_id in range(skip_first+1, self.layers+1-skip_last):
-            (x, pre_act) = getattr(self, 'fcLayer{}'.format(lay_id))(x, return_pa=True)
+            (x, pre_act) = getattr(self, 'fcLayer{}'.format(lay_id))(x, return_pa=True)  # get的attr是 self.layer(i)的函数对象，所以直接跟着括号（x）就是经过Linear的一层
             if return_lists:
                 pre_act_list.append(pre_act)  #-> for each layer, store pre-activations
                 if lay_id<(self.layers-skip_last):

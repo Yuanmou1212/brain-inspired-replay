@@ -54,7 +54,7 @@ class AutoEncoder(ContinualLearner):
         self.dg_type = dg_type
         self.dg_prop = dg_prop
         self.dg_gates = dg_gates if dg_prop>0. else False
-        self.gate_size = (tasks if dg_type=="task" else classes) if self.dg_gates else 0
+        self.gate_size = (tasks if dg_type=="task" else classes) if self.dg_gates else 0   # 选择classes就是我们的Gating based on internal context
         self.scenario = scenario
 
         # Optimizer (needs to be set before training starts))
@@ -141,7 +141,7 @@ class AutoEncoder(ContinualLearner):
             image_channels=image_channels, final_channels=start_channels, depth=self.depth,
             reducing_layers=reducing_layers, batch_norm=conv_bn, nl=conv_nl, gated=conv_gated,
             output=self.network_output, deconv_type=deconv_type,
-        ) if (not self.hidden) else modules.Identity()
+        ) if (not self.hidden) else modules.Identity()                  ## 这里太关键了，internal replay的实现，就是hidden=True 然后convD被Identity代替所以 decode 函数的输出其实就是hidden feature！
 
         ##>----Prior----<##
         # -if using the GMM-prior, add its parameters
@@ -213,12 +213,12 @@ class AutoEncoder(ContinualLearner):
         '''Pass input through feed-forward connections, to get [z_mean], [z_logvar] and [hE].
         Input [x] is either an image or, if [self.hidden], extracted "intermediate" or "internal" image features.'''
         # Forward-pass through conv-layers
-        hidden_x = x if (self.hidden and not not_hidden) else self.convE(x)
-        image_features = self.flatten(hidden_x)
+        hidden_x = x if (self.hidden and not not_hidden) else self.convE(x)  # when use internal replay, skip conv layers
+        image_features = self.flatten(hidden_x)                              # view(batch_size,-1)
         # Forward-pass through fc-layers
         hE = self.fcE(image_features)
         # Get parameters for reparametrization
-        (z_mean, z_logvar) = self.toZ(hE)
+        (z_mean, z_logvar) = self.toZ(hE)                                    #  用ANN来从FC的特征输出，来估计mean 和 var
         return z_mean, z_logvar, hE, hidden_x
 
     def classify(self, x, not_hidden=False, reparameterize=True, **kwargs):
@@ -241,7 +241,7 @@ class AutoEncoder(ContinualLearner):
         eps = std.new(std.size()).normal_()#.requires_grad_()
         return eps.mul(std).add_(mu)
 
-    def decode(self, z, gate_input=None):
+    def decode(self, z, gate_input=None):    
         '''Decode latent variable activations.
 
         INPUT:  - [z]            <2D-tensor>; latent variables to be decoded
@@ -257,7 +257,7 @@ class AutoEncoder(ContinualLearner):
         # -put inputs through decoder
         hD = self.fromZ(z, gate_input=gate_input) if self.dg_gates else self.fromZ(z)
         image_features = self.fcD(hD, gate_input=gate_input) if self.dg_gates else self.fcD(hD)
-        image_recon = self.convD(self.to_image(image_features))
+        image_recon = self.convD(self.to_image(image_features))   # 其实convD 在internal replay的情况下，是被替换成了identiy，讲hidden feature直接传了出去。
         return image_recon
 
     def forward(self, x, gate_input=None, full=False, reparameterize=True, **kwargs):
@@ -396,10 +396,10 @@ class AutoEncoder(ContinualLearner):
 
     ##------ LOSS FUNCTIONS --------##
 
-    def calculate_recon_loss(self, x, x_recon, average=False):
+    def calculate_recon_loss(self, x, x_recon, average=False):      # 当x输入是hidden feature（encoder仅过conv层） x_recon也是hidden feature（decoder不经过conv层）
         '''Calculate reconstruction loss for each element in the batch.
 
-        INPUT:  - [x]           <tensor> with original input (1st dimension (ie, dim=0) is "batch-dimension")
+        INPUT:  - [x]           <tensor> with original input (1st dimension (ie, dim=0) is "batch-dimension")  
                 - [x_recon]     (tuple of 2x) <tensor> with reconstructed input in same shape as [x]
                 - [average]     <bool>, if True, loss is average over all pixels; otherwise it is summed
 

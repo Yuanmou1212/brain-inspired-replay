@@ -52,7 +52,7 @@ class fc_layer_split(nn.Module):
                  drop=0., bias=True, excitability=False, excit_buffer=False, batch_norm=False, gated=False):
         super().__init__()
 
-        self.mean = fc_layer(in_size, out_size, drop=drop, bias=bias, excitability=excitability,
+        self.mean = fc_layer(in_size, out_size, drop=drop, bias=bias, excitability=excitability,   # 用ANN来从FC的特征输出，来估计mean 和 var
                              excit_buffer=excit_buffer, batch_norm=batch_norm, gated=gated, nl=nl_mean)
         self.logvar = fc_layer(in_size, out_size, drop=drop, bias=False, excitability=excitability,
                                excit_buffer=excit_buffer, batch_norm=batch_norm, gated=gated, nl=nl_logvar)

@@ -43,7 +43,7 @@ def handle_inputs():
 
 
 ## Function for running one continual learning experiment
-def run(args, verbose=False):
+def run(args, verbose=False):                        # 核心运行程序
 
     # Create plots- and results-directories if needed
     if not os.path.isdir(args.r_dir):
@@ -66,10 +66,10 @@ def run(args, verbose=False):
         print("CUDA is {}used".format("" if cuda else "NOT(!!) "))
 
     # Set random seeds
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)     #确保numpy生成的随机数可重复
+    torch.manual_seed(args.seed)  #确保PyTorch在生成随机数时也具有可重复性
     if cuda:
-        torch.cuda.manual_seed(args.seed)
+        torch.cuda.manual_seed(args.seed)  #GPU上的随机操作也是可重复的
 
 
     #-------------------------------------------------------------------------------------------------#
@@ -86,7 +86,7 @@ def run(args, verbose=False):
         normalize=True if utils.checkattr(args, "normalize") else False,
         augment=True if utils.checkattr(args, "augment") else False,
         verbose=verbose, exception=True if args.seed<10 else False, only_test=(not args.train)
-    )
+    )     
 
 
     #-------------------------------------------------------------------------------------------------#
@@ -95,9 +95,9 @@ def run(args, verbose=False):
     #----- MAIN MODEL -----#
     #----------------------#
 
-    # Define main model (i.e., classifier, if requested with feedback connections)
+    # Define main model (i.e., classifier, if requested with feedback connections) # 有replay through feedback= one whole model, 没有RTF=仅有一个classifier
     if verbose and (utils.checkattr(args, "pre_convE") or utils.checkattr(args, "pre_convD")) and \
-            (hasattr(args, "depth") and args.depth>0):
+            (hasattr(args, "depth") and args.depth>0):         # All methods use pre-trained conv layers.  ??depth is what??
         print("\nDefining the model...")
     if utils.checkattr(args, 'feedback'):
         model = define.define_autoencoder(args=args, config=config, device=device)

@@ -36,7 +36,7 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
 
 
     def _device(self):
-        return next(self.parameters()).device
+        return next(self.parameters()).device #
 
     def _is_on_cuda(self):
         return next(self.parameters()).is_cuda
@@ -54,18 +54,18 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
         [gating_prop]   <num>, between 0 and 1, proportion of nodes to be gated
         [n_tasks]       <int>, total number of tasks'''
 
-        mask_dict = {}
+        mask_dict = {} # 塞进去的是多值dictionary，第一个[]是key，第二个[]是对应value （value1,value2...）的切片index
         excit_buffer_list = []
         for task_id in range(n_tasks):
             mask_dict[task_id + 1] = {}
             for i in range(self.fcE.layers):
-                layer = getattr(self.fcE, "fcLayer{}".format(i + 1)).linear
+                layer = getattr(self.fcE, "fcLayer{}".format(i + 1)).linear # getattr 获得 eg:fc layer中叫做fcLayer1的对象； .linear 是vae中MLP类中引用的fc_layer类自定义的xA^T+B，纯线性部分，不包含layer层中的BN什么的。
                 if task_id == 0:
                     excit_buffer_list.append(layer.excit_buffer)
                 n_units = len(layer.excit_buffer)
-                gated_units = np.random.choice(n_units, size=int(gating_prop * n_units), replace=False)
-                mask_dict[task_id + 1][i] = gated_units
-        self.mask_dict = mask_dict
+                gated_units = np.random.choice(n_units, size=int(gating_prop * n_units), replace=False) # n_units 个数（range（n_units））中取 size个数，返回一维数组；replace false 不可取相同数
+                mask_dict[task_id + 1][i] = gated_units # 第task_ID+1 个任务 的第 i 层 layer 的mask = 1D array 其中的数代表了 这一层要被gated的neuron的index
+        self.mask_dict = mask_dict   # mask_dict {‘layer1’：[array1（0,2,..）,array2,..], 'layer2':[],..}
         self.excit_buffer_list = excit_buffer_list
 
     def apply_XdGmask(self, task):
