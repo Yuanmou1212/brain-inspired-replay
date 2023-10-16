@@ -86,7 +86,7 @@ class fc_layer_fixed_gates(nn.Module):
         if batch_norm:
             self.bn = nn.BatchNorm1d(out_size)
         if gate_size>0:
-            self.gate_mask = torch.tensor(
+            self.gate_mask = torch.tensor(    # 随机生成的0.0和1.0值，根据给定的概率分布生成， gate-size行，对每个任务代码one-hot来，就通过对one-hot矩阵乘法 取出其中一行。作为gate mask！！
                 np.random.choice([0., 1.], size=(gate_size, out_size), p=[gating_prop, 1.-gating_prop]),
                 dtype=torch.float, device=device
             )
@@ -98,7 +98,7 @@ class fc_layer_fixed_gates(nn.Module):
     def forward(self, x, gate_input=None, return_pa=False):
         input = self.dropout(x) if hasattr(self, 'dropout') else x
         pre_activ = self.bn(self.linear(input)) if hasattr(self, 'bn') else self.linear(input)
-        gate = torch.mm(gate_input, self.gate_mask) if hasattr(self, 'gate_mask') else None
+        gate = torch.mm(gate_input, self.gate_mask) if hasattr(self, 'gate_mask') else None  # 猜测：gate_input 在train相关代码看到是 1D tensor or 2D tensor，而且要转化为one-HOT， 那么就是一个1*M 的向量。要对应到mask，乘以一个M*out_size的 向量转化成 1*out 就和这一层的FC 结果能对应上了！
         gated_pre_activ = gate * pre_activ if hasattr(self, 'gate_mask') else pre_activ
         output = self.nl(gated_pre_activ) if hasattr(self, 'nl') else gated_pre_activ
         return (output, gated_pre_activ) if return_pa else output

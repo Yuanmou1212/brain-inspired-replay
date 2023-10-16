@@ -279,7 +279,7 @@ class AutoEncoder(ContinualLearner):
             # -encode (forward), reparameterize and decode (backward)
             mu, logvar, hE, hidden_x = self.encode(x)
             z = self.reparameterize(mu, logvar) if reparameterize else mu
-            gate_input = gate_input if self.dg_gates else None
+            gate_input = gate_input if self.dg_gates else None  # 从train_a_model 找回去，在train.py中得知 这个参数来自dataloader
             x_recon = self.decode(z, gate_input=gate_input)
             # -classify
             if hasattr(self, "classifier"):
@@ -757,11 +757,11 @@ class AutoEncoder(ContinualLearner):
                 task_tensor = torch.tensor(np.repeat(task-1, x.size(0))).to(self._device())
 
             # Run the model
-            x = self.convE(x) if self.hidden else x   # -pre-processing (if 'hidden')
-            recon_batch, y_hat, mu, logvar, z = self(
+            x = self.convE(x) if self.hidden else x   # -pre-processing (if 'hidden')     # 对current data， x是最初输出。
+            recon_batch, y_hat, mu, logvar, z = self(  # 这里的recon_batch 在hidden情况下 ， 不是x而是feature。
                 x, gate_input=(task_tensor if self.dg_type=="task" else y) if self.dg_gates else None, full=True,
                 reparameterize=True
-            )
+            )    # internal replay 情况下，最后一个convD = pass， 所以输出是 conv前的数据。
             # -if needed ("class"/"task"-scenario), find allowed classes for current task & remove predictions of others
             if active_classes is not None:
                 class_entries = active_classes[-1] if type(active_classes[0])==list else active_classes
@@ -853,7 +853,7 @@ class AutoEncoder(ContinualLearner):
                     x_temp_ = x_[replay_id] if type(x_)==list else x_
                     if self.mask_dict is not None:
                         self.apply_XdGmask(task=replay_id+1)
-                    x_temp_ = self.convE(x_temp_) if self.hidden and replay_not_hidden else x_temp_
+                    x_temp_ = self.convE(x_temp_) if self.hidden and replay_not_hidden else x_temp_  # replay_not_hidden 是false，所以这里就成功略过了convE
                     # -run full model
                     gate_input = (tasks_[replay_id] if self.dg_type=="task" else y_predicted) if self.dg_gates else None
                     recon_batch, y_hat_all, mu, logvar, z = self(x_temp_, full=True, gate_input=gate_input)

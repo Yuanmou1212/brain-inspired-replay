@@ -33,7 +33,7 @@ def handle_inputs():
     parser = options.add_model_options(parser, **kwargs)
     parser = options.add_train_options(parser, **kwargs)
     parser = options.add_replay_options(parser, **kwargs)
-    parser = options.add_bir_options(parser, **kwargs)
+    parser = options.add_bir_options(parser, **kwargs)      # 影响BI的methods就在这里
     parser = options.add_allocation_options(parser, **kwargs)
     # Parse, process (i.e., set defaults for unselected options) and check chosen options
     args = parser.parse_args()
@@ -99,7 +99,7 @@ def run(args, verbose=False):                        # 核心运行程序
     if verbose and (utils.checkattr(args, "pre_convE") or utils.checkattr(args, "pre_convD")) and \
             (hasattr(args, "depth") and args.depth>0):         # All methods use pre-trained conv layers.  ??depth is what??
         print("\nDefining the model...")
-    if utils.checkattr(args, 'feedback'):
+    if utils.checkattr(args, 'feedback'):   # 有RTF用这个model，一含二
         model = define.define_autoencoder(args=args, config=config, device=device)
     else:
         model = define.define_classifier(args=args, config=config, device=device)
@@ -111,7 +111,7 @@ def run(args, verbose=False):                        # 核心运行程序
     if utils.checkattr(args, "freeze_convE"):
         for param in model.convE.parameters():
             param.requires_grad = False
-    if utils.checkattr(args, 'feedback') and utils.checkattr(args, "freeze_convD"):
+    if utils.checkattr(args, 'feedback') and utils.checkattr(args, "freeze_convD"):  
         for param in model.convD.parameters():
             param.requires_grad = False
 
